@@ -3,8 +3,8 @@ from redisvl.extensions.router import Route, SemanticRouter
 from redisvl.utils.vectorize import HFTextVectorizer
 
 
-REDIS_HOST = "redis-13512.re-cluster1.ps-redislabs.org" 
-REDIS_PORT = 13512         
+REDIS_HOST = "redis-11377.re-cluster1.ps-redislabs.org" 
+REDIS_PORT = 11377         
 REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}"
 
 def setup_router():
