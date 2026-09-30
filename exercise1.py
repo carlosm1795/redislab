@@ -1,36 +1,41 @@
 import redis
 
-
 SOURCE_HOST = "redis-12000.re-cluster1.ps-redislabs.org" 
 SOURCE_PORT = 12000                  
 
 REPLICA_HOST = "redis-16250.re-cluster1.ps-redislabs.org" 
 REPLICA_PORT = 16250                
 
-KEY_NAME = "numbers_list"
-
 def main():
-    # 1. Connect to source-db and insert values 1 to 100
+    # 1. Connect to source-db
     print("Connecting to source-db...")
     source_client = redis.Redis(host=SOURCE_HOST, port=SOURCE_PORT, decode_responses=True)
 
-    source_client.delete(KEY_NAME)
+    # Optional: Clear existing keys first to start fresh
+    source_client.flushdb()
 
-  
-    values = [str(i) for i in range(1, 101)]
-    source_client.rpush(KEY_NAME, *values)
-    print(f"Successfully inserted values 1-100 into '{KEY_NAME}' on source-db.")
+    # 2. Insert 100 separate keys (e.g., key_1=1, key_2=2, ... key_100=100)
+    print("Inserting 100 individual keys into source-db...")
+    for i in range(1, 101):
+        source_client.set(f"key_{i}", i)
 
-    # 2. Connect to replica-db and read values in reverse order
+    # 3. Confirm 100 keys exist in source-db
+    key_count = source_client.dbsize()
+    print(f"\n[+] Total key count in source-db: {key_count}")
+
+    if key_count == 100:
+        print("    Confirmation SUCCESSFUL: Exactly 100 keys exist in source-db!")
+    else:
+        print(f"    Warning: Found {key_count} keys instead of 100.")
+
+    # 4. Connect to replica-db and read/print in reverse order
     print("\nConnecting to replica-db...")
     replica_client = redis.Redis(host=REPLICA_HOST, port=REPLICA_PORT, decode_responses=True)
 
-    
-    items = replica_client.lrange(KEY_NAME, 0, -1)
-
-    print("\nPrinting values in reverse order (100 down to 1) from replica-db:")
-    for value in reversed(items):
-        print(value)
+    print("\nPrinting 100 keys in reverse order from replica-db:")
+    for i in range(100, 0, -1):
+        value = replica_client.get(f"key_{i}")
+        print(f"key_{i}: {value}")
 
 if __name__ == "__main__":
     main()
