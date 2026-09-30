@@ -64,15 +64,12 @@ def create_users():
     """2. Create three new users with specified roles."""
     endpoint = f"{BASE_URL}/users"
     
-    # Map the requested roles to exact cluster role names
-    john_role = get_exact_role_name("db_viewer")
-    mike_role = get_exact_role_name("db_member")
-    cary_role = get_exact_role_name("admin")
+
     
     users_to_create = [
-        {"email": "john.doe@example.com", "name": "John Doe", "role": john_role},
-        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": mike_role},
-        {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": cary_role}
+        {"email": "john.doe@example.com", "name": "John Doe", "role": "admin"},
+        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": "admin"},
+        {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": "admin"}
     ]
     
     print("\n[+] Creating users...")
