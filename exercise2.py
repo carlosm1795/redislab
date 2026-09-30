@@ -41,8 +41,8 @@ def create_users():
     """2. Create three new users with specified roles."""
     endpoint = f"{BASE_URL}/users"
     users_to_create = [
-        {"email": "john.doe@example.com", "name": "John Doe", "role": "admin"},
-        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": "admin"},
+        {"email": "john.doe@example.com", "name": "John Doe", "role": "db_viewer"},
+        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": "db_member"},
         {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": "admin"}
     ]
     
