@@ -6,13 +6,22 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # API Configuration
-# Replace hostname with node IP (e.g., https://172.16.22.21:9443) if DNS fails
 BASE_URL = "https://re-cluster1.ps-redislabs.org:9443/v1"
+# If DNS fails inside lab, use node IP (e.g., BASE_URL = "https://172.16.22.21:9443/v1")
 AUTH = ("admin@rl.org", "bP0Pmxs")
 HEADERS = {"Content-Type": "application/json"}
 
-# Global variable to store created DB ID during menu execution
 created_db_id = None
+
+def get_role_mapping():
+    """Fetch available cluster roles to map roles correctly if needed."""
+    try:
+        res = requests.get(f"{BASE_URL}/roles", auth=AUTH, verify=False)
+        if res.status_code == 200:
+            return {role.get("name", "").lower(): role.get("name") for role in res.json()}
+    except Exception:
+        pass
+    return {}
 
 def create_database():
     """1. Create a new database without using any modules."""
@@ -40,10 +49,15 @@ def create_database():
 def create_users():
     """2. Create three new users with specified roles."""
     endpoint = f"{BASE_URL}/users"
+    
+    # Try fetching roles from cluster or fallback to standard names
+    role_map = get_role_mapping()
+    
+    # Define targets and map to cluster role names
     users_to_create = [
-        {"email": "john.doe@example.com", "name": "John Doe", "role": "db_viewer"},
-        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": "db_member"},
-        {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": "admin"}
+        {"email": "john.doe@example.com", "name": "John Doe", "role": role_map.get("db_viewer", "db_viewer")},
+        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": role_map.get("db_member", "db_member")},
+        {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": role_map.get("admin", "admin")}
     ]
     
     print("\n[+] Creating users...")
@@ -51,8 +65,9 @@ def create_users():
         payload = {
             "email": user["email"],
             "name": user["name"],
-            "role": user["role"],
-            "password": "Password123!"  # Password required by API
+            "role": user["role"],       # Try primary string parameter
+            "roles": [user["role"]],    # Pass roles array expected by some API versions
+            "password": "Password123!"
         }
         try:
             res = requests.post(endpoint, auth=AUTH, headers=HEADERS, json=payload, verify=False)
@@ -74,7 +89,7 @@ def list_and_display_users():
             print("\n--- Current Cluster Users ---")
             for u in users:
                 name = u.get("name", "N/A")
-                role = u.get("role", "N/A")
+                role = u.get("role") or (u.get("roles")[0] if u.get("roles") else "N/A")
                 email = u.get("email", "N/A")
                 print(f"Name: {name:<20} | Role: {role:<12} | Email: {email}")
             print("------------------------------")
@@ -84,7 +99,7 @@ def list_and_display_users():
         print(f"    Error: {e}")
 
 def delete_database():
-    """4. Delete the database (prompts for ID if not already saved in memory)."""
+    """4. Delete the database."""
     global created_db_id
     db_id = created_db_id
     
