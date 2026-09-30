@@ -106,6 +106,35 @@ def delete_database():
             print(f"    Failed ({res.status_code}): {res.text}")
     except Exception as e:
         print(f"    Error: {e}")
+        
+def create_custom_roles():
+    "Extra step to create new Roles"
+    roles_to_create = [
+    {
+        "name": "db_viewer",
+        "permissions": [
+            {"name": "view_all_bdbs_info"},
+            {"name": "view_all_users_info"}
+        ]
+    },
+    {
+        "name": "db_member",
+        "permissions": [
+            {"name": "view_all_bdbs_info"},
+            {"name": "view_bdb_stats"},
+            {"name": "view_all_users_info"}
+        ]
+    }
+]
+
+    for role in roles_to_create:
+        res = requests.post(f"{BASE_URL}/roles", auth=AUTH, headers=HEADERS, json=role, verify=False)
+        if res.status_code in [200, 201]:
+            print(f"Role '{role['name']}' created successfully: UID {res.json().get('uid')}")
+        elif res.status_code in [400, 409]:
+            print(f"Role '{role['name']}' already exists.")
+        else:
+            print(f"Failed to create role '{role['name']}': {res.status_code} - {res.text}")
 
 def main():
     while True:
@@ -116,8 +145,9 @@ def main():
         print("2. Create Three Users")
         print("3. List and Display Users")
         print("4. Delete Database")
-        print("5. Execute ALL Steps (Sequential)")
-        print("6. Exit")
+        print("5. Create Roles")
+        print("6. Execute ALL Steps (Sequential)")
+        print("7. Exit")
         
         choice = input("\nSelect an option (1-6): ").strip()
 
@@ -130,11 +160,13 @@ def main():
         elif choice == "4":
             delete_database()
         elif choice == "5":
+            create_custom_roles()
+        elif choice == "6":
             create_database()
             create_users()
             list_and_display_users()
             delete_database()
-        elif choice == "6":
+        elif choice == "7":
             print("Exiting script.")
             break
         else:
