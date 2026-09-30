@@ -2,26 +2,40 @@ import requests
 import json
 import urllib3
 
-# Disable SSL verification warnings for self-signed lab certificates
+# Disable SSL warnings for self-signed lab certificates
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # API Configuration
+# If hostname resolution fails inside the lab, replace with node IP (e.g., "https://172.16.22.21:9443/v1")
 BASE_URL = "https://re-cluster1.ps-redislabs.org:9443/v1"
-# If DNS fails inside lab, use node IP (e.g., BASE_URL = "https://172.16.22.21:9443/v1")
 AUTH = ("admin@rl.org", "bP0Pmxs")
 HEADERS = {"Content-Type": "application/json"}
 
 created_db_id = None
 
-def get_role_mapping():
-    """Fetch available cluster roles to map roles correctly if needed."""
+def get_exact_role_name(target_role):
+    """
+    Queries /v1/roles to get the exact role name required by Redis Enterprise.
+    """
     try:
         res = requests.get(f"{BASE_URL}/roles", auth=AUTH, verify=False)
         if res.status_code == 200:
-            return {role.get("name", "").lower(): role.get("name") for role in res.json()}
-    except Exception:
-        pass
-    return {}
+            roles = res.json()
+            for r in roles:
+                r_name = r.get("name", "")
+                # Flexible matching for db_viewer, db_member, admin
+                if target_role.lower() in r_name.lower().replace(" ", "_") or target_role.lower() in r_name.lower():
+                    return r_name
+    except Exception as e:
+        print(f"    Warning fetching roles: {e}")
+    
+    # Defaults fallback if API query fails
+    fallback_map = {
+        "db_viewer": "DB Viewer",
+        "db_member": "DB Member",
+        "admin": "Cluster Admin"
+    }
+    return fallback_map.get(target_role, target_role)
 
 def create_database():
     """1. Create a new database without using any modules."""
@@ -50,29 +64,30 @@ def create_users():
     """2. Create three new users with specified roles."""
     endpoint = f"{BASE_URL}/users"
     
-    # Try fetching roles from cluster or fallback to standard names
-    role_map = get_role_mapping()
+    # Map the requested roles to exact cluster role names
+    john_role = get_exact_role_name("db_viewer")
+    mike_role = get_exact_role_name("db_member")
+    cary_role = get_exact_role_name("admin")
     
-    # Define targets and map to cluster role names
     users_to_create = [
-        {"email": "john.doe@example.com", "name": "John Doe", "role": role_map.get("db_viewer", "db_viewer")},
-        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": role_map.get("db_member", "db_member")},
-        {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": role_map.get("admin", "admin")}
+        {"email": "john.doe@example.com", "name": "John Doe", "role": john_role},
+        {"email": "mike.smith@example.com", "name": "Mike Smith", "role": mike_role},
+        {"email": "cary.johnson@example.com", "name": "Cary Johnson", "role": cary_role}
     ]
     
     print("\n[+] Creating users...")
     for user in users_to_create:
+        # Note: Redis Enterprise API accepts role as an array of role names
         payload = {
             "email": user["email"],
             "name": user["name"],
-            "role": user["role"],       # Try primary string parameter
-            "roles": [user["role"]],    # Pass roles array expected by some API versions
+            "role": [user["role"]],     # Role passed as an array [ "DB Viewer" ]
             "password": "Password123!"
         }
         try:
             res = requests.post(endpoint, auth=AUTH, headers=HEADERS, json=payload, verify=False)
             if res.status_code in [200, 201]:
-                print(f"    Created: {user['name']} | Role: {user['role']} | Email: {user['email']}")
+                print(f"    Successfully created: {user['name']} | Role: {user['role']} | Email: {user['email']}")
             else:
                 print(f"    Failed to create {user['name']} ({res.status_code}): {res.text}")
         except Exception as e:
@@ -89,9 +104,16 @@ def list_and_display_users():
             print("\n--- Current Cluster Users ---")
             for u in users:
                 name = u.get("name", "N/A")
-                role = u.get("role") or (u.get("roles")[0] if u.get("roles") else "N/A")
+                
+                # Format role output cleanly whether returned as string or list
+                raw_role = u.get("role") or u.get("roles")
+                if isinstance(raw_role, list):
+                    role_str = ", ".join(raw_role)
+                else:
+                    role_str = str(raw_role)
+                    
                 email = u.get("email", "N/A")
-                print(f"Name: {name:<20} | Role: {role:<12} | Email: {email}")
+                print(f"Name: {name:<20} | Role: {role_str:<15} | Email: {email}")
             print("------------------------------")
         else:
             print(f"    Failed ({res.status_code}): {res.text}")
