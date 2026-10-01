@@ -14,10 +14,10 @@ def main():
     # Optional: Clear existing keys first to start fresh
     source_client.flushdb()
 
-    # 2. Insert 100 separate keys (e.g., key_1=1, key_2=2, ... key_100=100)
+
     print("Inserting 100 individual keys into source-db...")
     for i in range(1, 101):
-        source_client.set(f"key_{i}", i)
+        source_client.set(f"number", i)
 
     # 3. Confirm 100 keys exist in source-db
     key_count = source_client.dbsize()
