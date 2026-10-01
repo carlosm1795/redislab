@@ -34,7 +34,7 @@ def main():
 
     print("\nPrinting 100 keys in reverse order from replica-db:")
     for i in range(100, 0, -1):
-        value = replica_client.get(f"number_{i}")
+        value = replica_client.get(f"{i}")
         print(f"{i}: {value}")
 
 if __name__ == "__main__":
