@@ -17,7 +17,7 @@ def main():
 
     print("Inserting 100 individual keys into source-db...")
     for i in range(1, 101):
-        source_client.set(f"number_{i}", i)
+        source_client.set(i, i)
 
     # 3. Confirm 100 keys exist in source-db
     key_count = source_client.dbsize()
