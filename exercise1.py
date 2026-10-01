@@ -17,7 +17,7 @@ def main():
 
     print("Inserting 100 individual keys into source-db...")
     for i in range(1, 101):
-        source_client.set(f"number", i)
+        source_client.set(f"number_{i}", i)
 
     # 3. Confirm 100 keys exist in source-db
     key_count = source_client.dbsize()
@@ -34,8 +34,8 @@ def main():
 
     print("\nPrinting 100 keys in reverse order from replica-db:")
     for i in range(100, 0, -1):
-        value = replica_client.get(f"key_{i}")
-        print(f"key_{i}: {value}")
+        value = replica_client.get(f"number_{i}")
+        print(f"number_{i}: {value}")
 
 if __name__ == "__main__":
     main()
